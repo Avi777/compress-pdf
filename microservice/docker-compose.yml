@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: fastapi.dockerfile
+    environment:
+      REDISSERVER: redis://redis_server:6379
+      C_FORCE_ROOT: "true"
+    ports:
+      - "8000:80"
+    depends_on:
+      - redis_server
+
+  redis_server:
+    image: redis
+
+  celeryworker:
+    image: '${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}'
+    build:
+      dockerfile: celeryworker.dockerfile
+      context: ./backend
+    environment:
+      REDISSERVER: redis://redis_server:6379
+      C_FORCE_ROOT: "true"
+    depends_on:
+      - redis_server
+  
+  flower:
+    image: mher/flower
+    command: ["flower", "--broker=redis://redis_server:6379", "--port=5672"]
+    ports:
+      - "5672:5672"
+    depends_on:
+      - redis_server
